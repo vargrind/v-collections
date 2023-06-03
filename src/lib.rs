@@ -1,8 +1,8 @@
 pub mod trie;
-pub mod linked;
+pub mod circular;
 pub mod rbtree;
 pub mod btree;
-pub mod array;
+pub mod vector;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

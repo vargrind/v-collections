@@ -43,7 +43,7 @@ impl<T> Circular<T> {
     }
 
     pub fn shift(&mut self, what: T) {
-
+        
     }
 
     pub fn unshift(&mut self, what: T) {
@@ -52,45 +52,45 @@ impl<T> Circular<T> {
 
     /// peeks the front element as a shared reference
     pub fn front(&self) -> Option<&T> {
-        Option::None
+
     }
 
     /// peeks the front element as a mutable reference
     pub fn front_mut(&mut self) -> Option<&mut T> {
-        Option::None
+
 
     }
 
     /// peeks the rear element as a shared reference
     pub fn rear(&self) -> Option<&T> {
-        Option::None
+
     }
 
     /// peeks the rear element as a mutable reference
     pub fn rear_mut(&mut self) -> Option<&mut T> {
-        Option::None
+
     }
     
 }
 
-// impl<T> Iterator for Iteration<T> {
+impl<T> Iterator for Iteration<T> {
     
-//     fn next (&mut self) -> Option<Self::Item> {
-//         Option::None
-//     }
-// }
+    fn next (&mut self) -> Option<Self::Item> {
+        Option::None
+    }
+}
 
-// impl<T> Clone for Iteration<T> {
+impl<T> Clone for Iteration<T> {
 
-// }
+}
 
-// impl<T> Iterator for MutableIteration<T> {
+impl<T> Iterator for MutableIteration<T> {
     
-// }
+}
 
-// impl<T> Clone for MutableIteration<T> {
+impl<T> Clone for MutableIteration<T> {
     
-// }
+}
 
 #[cfg(test)]
 mod tests {
