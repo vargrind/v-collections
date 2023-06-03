@@ -16,15 +16,18 @@ struct Node<T> {
     prev: *mut Node<T>,
 }
 
-pub struct Iteration<T> {
-    first: *const Node<T>,
-    last: *const Node<T>,
+#[derive(Clone, Copy)]
+pub struct Iteration<'a, T> {
+    first: Option<&'a Node<T>>,
+    last: Option<&'a Node<T>>,
 }
 
-pub struct MutableIteration<T> {
-    first: *mut Node<T>,
-    last: *mut Node<T>,
+pub struct MutableIteration<'a, T> {
+    first: Option<&'a mut Node<T>>,
+    last: Option<&'a mut Node<T>>,
 }
+
+pub struct MovedIteration<T> (Circular<T>);
 
 impl<T> Circular<T> {
     pub fn new() -> Self {
@@ -34,19 +37,48 @@ impl<T> Circular<T> {
         }
     }
     
+    /// add something to tail
     pub fn push(&mut self, what: T) {
+        unsafe {
+            let created = Box::into_raw(
+                Box::new(
+                    Node {
+                        value: what,
+                        next: ptr::null_mut(),
+                        prev: ptr::null_mut(),
+                    }
+                )
+            );
+            // list empty
+            if(self.head.is_null()){
+                self.head = created;
+                self.tail = created;
+                (*created).next = created;
+                (*created).prev = created;
+            }
+            // link to existing
+            else{
+                (*self.head).prev = created;
+                (*self.tail).next = created;
+                (*created).next = self.head;
+                (*created).prev = self.tail;
+                self.tail = created;
+            }
+        }
+    }
+
+    /// remove something from tail
+    pub fn pop(&mut self) -> Option<T>{
         
     }
 
-    pub fn pop(&mut self, what: T) {
-        
-    }
-
-    pub fn shift(&mut self, what: T) {
-        
-    }
-
+    /// add something to head
     pub fn unshift(&mut self, what: T) {
+        
+    }
+
+    /// remove something from head
+    pub fn shift(&mut self) -> Option<T>{
         
     }
 
@@ -73,23 +105,31 @@ impl<T> Circular<T> {
     
 }
 
-impl<T> Iterator for Iteration<T> {
-    
-    fn next (&mut self) -> Option<Self::Item> {
-        Option::None
+impl<T> Drop for Circular<T> {
+    fn drop(&mut self) {
+        while let Some(_) = self.pop() {}
     }
 }
 
-impl<T> Clone for Iteration<T> {
+impl<'a, T> Iterator for Iteration<'a, T> {
+    type Item = &'a T;
 
+    fn next (&mut self) -> Option<Self::Item> {
+        
+    }
 }
 
-impl<T> Iterator for MutableIteration<T> {
+impl<'a, T> Iterator for MutableIteration<'a, T> {
     
 }
 
-impl<T> Clone for MutableIteration<T> {
-    
+impl<T> Iterator for MovedIteration<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop()
+    }
+
 }
 
 #[cfg(test)]
