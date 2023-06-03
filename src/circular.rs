@@ -1,7 +1,7 @@
 //! unsafe, circularly linked list
 //! supports a variety of standard operations
 
-use core::iter::Iterator;
+use core::iter;
 use core::ptr;
 use core::mem;
 
