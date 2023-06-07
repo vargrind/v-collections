@@ -2,8 +2,8 @@
 //! supports a variety of standard operations
 
 use core::iter;
-use core::ptr;
 use core::mem;
+use core::ptr;
 
 pub struct Circular<T> {
     head: *mut Node<T>,
@@ -27,7 +27,7 @@ pub struct MutableIteration<'a, T> {
     last: Option<&'a mut Node<T>>,
 }
 
-pub struct MovedIteration<T> (Circular<T>);
+pub struct MovedIteration<T>(Circular<T>);
 
 impl<T> Circular<T> {
     pub fn new() -> Self {
@@ -36,28 +36,24 @@ impl<T> Circular<T> {
             tail: ptr::null_mut(),
         }
     }
-    
+
     /// add something to tail
     pub fn push(&mut self, what: T) {
         unsafe {
-            let created = Box::into_raw(
-                Box::new(
-                    Node {
-                        value: what,
-                        next: ptr::null_mut(),
-                        prev: ptr::null_mut(),
-                    }
-                )
-            );
+            let created = Box::into_raw(Box::new(Node {
+                value: what,
+                next: ptr::null_mut(),
+                prev: ptr::null_mut(),
+            }));
             // list empty
-            if(self.head.is_null()){
+            if (self.head.is_null()) {
                 self.head = created;
                 self.tail = created;
                 (*created).next = created;
                 (*created).prev = created;
             }
             // link to existing
-            else{
+            else {
                 (*self.head).prev = created;
                 (*self.tail).next = created;
                 (*created).next = self.head;
@@ -68,19 +64,17 @@ impl<T> Circular<T> {
     }
 
     /// remove something from tail
-    pub fn pop(&mut self) -> Option<T>{
+    pub fn pop(&mut self) -> Option<T> {
         if self.tail.is_null() {
             return None;
-        }
-        else if self.tail == self.head {
+        } else if self.tail == self.head {
             unsafe {
                 let raw = self.tail;
                 self.tail = ptr::null_mut();
                 self.head = ptr::null_mut();
                 return Some(Box::from_raw(raw).value);
             }
-        }
-        else {
+        } else {
             unsafe {
                 let raw = self.tail;
                 self.tail = (*raw).prev;
@@ -96,24 +90,20 @@ impl<T> Circular<T> {
     /// add something to head
     pub fn unshift(&mut self, what: T) {
         unsafe {
-            let created = Box::into_raw(
-                Box::new(
-                    Node {
-                        value: what,
-                        next: ptr::null_mut(),
-                        prev: ptr::null_mut(),
-                    }
-                )
-            );
+            let created = Box::into_raw(Box::new(Node {
+                value: what,
+                next: ptr::null_mut(),
+                prev: ptr::null_mut(),
+            }));
             // list empty
-            if(self.head.is_null()){
+            if (self.head.is_null()) {
                 self.head = created;
                 self.tail = created;
                 (*created).next = created;
                 (*created).prev = created;
             }
             // link to existing
-            else{
+            else {
                 (*self.head).prev = created;
                 (*self.tail).next = created;
                 (*created).next = self.head;
@@ -124,19 +114,17 @@ impl<T> Circular<T> {
     }
 
     /// remove something from head
-    pub fn shift(&mut self) -> Option<T>{
+    pub fn shift(&mut self) -> Option<T> {
         if self.tail.is_null() {
             return None;
-        }
-        else if self.tail == self.head {
+        } else if self.tail == self.head {
             unsafe {
                 let raw = self.head;
                 self.tail = ptr::null_mut();
                 self.head = ptr::null_mut();
                 return Some(Box::from_raw(raw).value);
             }
-        }
-        else {
+        } else {
             unsafe {
                 let raw = self.head;
                 self.head = (*raw).next;
@@ -147,7 +135,6 @@ impl<T> Circular<T> {
                 return Some(Box::from_raw(raw).value);
             }
         }
-        
     }
 
     /// peeks the front element as a shared reference
@@ -189,7 +176,28 @@ impl<T> Circular<T> {
             return Some(&mut (*self.tail).value);
         }
     }
-    
+
+    pub fn into_iter(self) -> MovedIteration<T> {
+        MovedIteration(self)
+    }
+
+    pub fn iter(&self) -> Iteration<T> {
+        unsafe {
+            Iteration {
+                first: self.head.as_ref(),
+                last: self.tail.as_ref(),
+            }
+        }
+    }
+
+    pub fn iter_mut(&self) -> MutableIteration<T> {
+        unsafe {
+            MutableIteration {
+                first: self.head.as_mut(),
+                last: self.tail.as_mut(),
+            }
+        }
+    }
 }
 
 impl<T> Drop for Circular<T> {
@@ -199,31 +207,26 @@ impl<T> Drop for Circular<T> {
     }
 }
 
-impl<'a, T> Iterator for Iteration<'a, T> {
+impl<'a, T> iter::Iterator for Iteration<'a, T> {
     type Item = &'a T;
 
-    fn next (&mut self) -> Option<Self::Item> {
-        
-    }
+    fn next(&mut self) -> Option<Self::Item> {}
 }
 
-impl<'a, T> Iterator for MutableIteration<'a, T> {
-    
-}
+impl<'a, T> iter::Iterator for MutableIteration<'a, T> {}
 
-impl<T> Iterator for MovedIteration<T> {
+impl<T> iter::Iterator for MovedIteration<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop()
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn gauntlet() {
         let list: Circular<i32> = Circular::new();

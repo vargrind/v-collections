@@ -1,7 +1,7 @@
-pub mod trie;
+pub mod btree;
 pub mod circular;
 pub mod rbtree;
-pub mod btree;
+pub mod trie;
 pub mod vector;
 
 pub fn add(left: usize, right: usize) -> usize {
