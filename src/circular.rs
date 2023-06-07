@@ -210,32 +210,85 @@ impl<T> Drop for Circular<T> {
 impl<'a, T> iter::Iterator for Iteration<'a, T> {
     type Item = &'a T;
 
-    fn next(&mut self) -> Option<Self::Item> {}
+    fn next(&mut self) -> Option<Self::Item> {
+        
+    }
+
 }
 
-impl<'a, T> iter::Iterator for MutableIteration<'a, T> {}
+impl<'a, T> iter::DoubleEndedIterator for Iteration<'a, T> {
+    
+    fn next_back(&mut self) -> Option<Self::Item> {
+        
+    }
+
+}
+
+impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        
+    }
+
+}
+
+impl<'a, T> iter::DoubleEndedIterator for MutableIteration<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        
+    }
+
+}
 
 impl<T> iter::Iterator for MovedIteration<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
+        self.0.shift()
+    }
+}
+
+impl<T> iter::DoubleEndedIterator for MovedIteration<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
         self.0.pop()
     }
 }
+
+impl<T> iter::FusedIterator for MovedIteration<T> {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn gauntlet() {
-        let list: Circular<i32> = Circular::new();
+    fn reads() {
+        let a = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10, 11, 12, 13, 14, 15];
+        let mut b = Circular::new();
+        a.iter().for_each(|x| b.push(x.clone()));
+        assert_eq!(b.shift(), Some(1));
+        assert_eq!(b.shift(), Some(3));
+        assert_eq!(b.pop(), Some(15));
+        assert_eq!(b.pop(), Some(14));
     }
 
-    fn test_list() -> Circular<i32> {
-        let v = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
-        let mut built = Circular::new();
-        v.into_iter().for_each(|x| built.push(x));
-        built
+    #[test]
+    fn iteration_reads() {
+        let mut a = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+        let mut a_refs = vec![&1, &3, &5, &7, &9, &2, &4, &6, &8, &10];
+        let mut b = Circular::new();
+        a.iter().for_each(|x| b.push(x));
+        let mut c = Vec::new();
+        b.iter().for_each(|x| c.push(*x));
+        let mut d = Vec::new();
+        b.into_iter().for_each(|x| d.push(*x));
+        assert_eq!(a_refs, c);
+        assert_eq!(a, d);
+        let mut e = Circular::new();
+        a.iter().for_each(|x| e.push(x));
+        a.reverse();
+        a_refs.reverse();
+        let mut f = Vec::new();
+        e.into_iter().rev().for_each(|x| f.push(*x));
+        assert_eq!(a, f);
     }
 }
