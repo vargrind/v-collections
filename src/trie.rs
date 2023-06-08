@@ -16,7 +16,7 @@ pub struct Trie<V> {
 struct TrieNode<V> {
     prefix: String,
     children: Vec<TrieNode<V>>,
-    value: V,
+    value: Option<V>,
 }
 
 impl<V> Trie<V> {
