@@ -2,7 +2,7 @@
 //! supports a variety of standard operations
 
 use core::iter;
-use core::mem;
+
 use core::ptr;
 
 pub struct Circular<T> {
@@ -46,7 +46,7 @@ impl<T> Circular<T> {
                 prev: ptr::null_mut(),
             }));
             // list empty
-            if (self.head.is_null()) {
+            if self.head.is_null() {
                 self.head = created;
                 self.tail = created;
                 (*created).next = created;
@@ -96,7 +96,7 @@ impl<T> Circular<T> {
                 prev: ptr::null_mut(),
             }));
             // list empty
-            if (self.head.is_null()) {
+            if self.head.is_null() {
                 self.head = created;
                 self.tail = created;
                 (*created).next = created;
@@ -322,8 +322,8 @@ mod tests {
 
     #[test]
     fn iteration_reads() {
-        let mut a: Vec<i32> = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
-        let mut a_refs: Vec<&i32> = vec![&1, &3, &5, &7, &9, &2, &4, &6, &8, &10];
+        let a: Vec<i32> = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+        let a_refs: Vec<&i32> = vec![&1, &3, &5, &7, &9, &2, &4, &6, &8, &10];
         let mut b = Circular::new();
         a.iter().for_each(|x| b.push(x));
         let mut c = Vec::new();
