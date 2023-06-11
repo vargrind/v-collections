@@ -258,15 +258,16 @@ impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
-            self.first.map(|e| {
-                if ptr::eq(e, self.first.unwrap()) {
-                    // hit the last one, eradicate both
+            self.first.take().map(|r1| {
+                if ptr::eq(r1, self.last.as_deref().unwrap()){
+                    // obliterate both, we hit end
                     self.first = None;
                     self.last = None;
-                } else {
-                    self.first = e.next.as_mut();
                 }
-                &mut e.value
+                else {
+                    self.first = r1.next.as_mut();
+                }
+                &mut r1.value
             })
         }
     }
@@ -275,15 +276,16 @@ impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
 impl<'a, T> iter::DoubleEndedIterator for MutableIteration<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         unsafe {
-            self.last.map(|e| {
-                if ptr::eq(e, self.first.unwrap()) {
-                    // hit the last one, eradicate both
+            self.last.take().map(|r1| {
+                if ptr::eq(r1, self.first.as_deref().unwrap()){
+                    // obliterate both, we hit end
                     self.first = None;
                     self.last = None;
-                } else {
-                    self.last = e.prev.as_mut();
                 }
-                &mut e.value
+                else {
+                    self.last = r1.prev.as_mut();
+                }
+                &mut r1.value
             })
         }
     }
@@ -334,10 +336,12 @@ mod tests {
         assert_eq!(a, d);
         let mut e = Circular::new();
         a.iter().for_each(|x| e.push(x));
-        a.reverse();
-        a_refs.reverse();
+        let mut a_rev = a.clone();
+        a_rev.reverse();
+        let mut a_refs_rev = a_refs.clone();
+        a_refs_rev.reverse();
         let mut f = Vec::new();
         e.into_iter().rev().for_each(|x| f.push(*x));
-        assert_eq!(a, f);
+        assert_eq!(a_rev, f);
     }
 }
