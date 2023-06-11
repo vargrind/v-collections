@@ -200,6 +200,16 @@ impl<T> Circular<T> {
     }
 }
 
+impl<E> FromIterator<E> for Circular<E> {
+    fn from_iter<T: IntoIterator<Item = E>>(iter: T) -> Self {
+        let mut instance = Self::new();
+        for thing in iter {
+            instance.push(thing);
+        }
+        instance
+    }
+}
+
 impl<T> Drop for Circular<T> {
     fn drop(&mut self) {
         // lazy drop: recursively move things out of scope and drop them.
