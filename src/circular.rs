@@ -220,34 +220,21 @@ impl<T> Drop for Circular<T> {
 impl<'a, T> iter::Iterator for Iteration<'a, T> {
     type Item = &'a T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        
-    }
-
+    fn next(&mut self) -> Option<Self::Item> {}
 }
 
 impl<'a, T> iter::DoubleEndedIterator for Iteration<'a, T> {
-    
-    fn next_back(&mut self) -> Option<Self::Item> {
-        
-    }
-
+    fn next_back(&mut self) -> Option<Self::Item> {}
 }
 
 impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
     type Item = &'a mut T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        
-    }
-
+    fn next(&mut self) -> Option<Self::Item> {}
 }
 
 impl<'a, T> iter::DoubleEndedIterator for MutableIteration<'a, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        
-    }
-
+    fn next_back(&mut self) -> Option<Self::Item> {}
 }
 
 impl<T> iter::Iterator for MovedIteration<T> {
