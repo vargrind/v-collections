@@ -259,12 +259,11 @@ impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
             self.first.take().map(|r1| {
-                if ptr::eq(r1, self.last.as_deref().unwrap()){
+                if ptr::eq(r1, self.last.as_deref().unwrap()) {
                     // obliterate both, we hit end
                     self.first = None;
                     self.last = None;
-                }
-                else {
+                } else {
                     self.first = r1.next.as_mut();
                 }
                 &mut r1.value
@@ -277,12 +276,11 @@ impl<'a, T> iter::DoubleEndedIterator for MutableIteration<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         unsafe {
             self.last.take().map(|r1| {
-                if ptr::eq(r1, self.first.as_deref().unwrap()){
+                if ptr::eq(r1, self.first.as_deref().unwrap()) {
                     // obliterate both, we hit end
                     self.first = None;
                     self.last = None;
-                }
-                else {
+                } else {
                     self.last = r1.prev.as_mut();
                 }
                 &mut r1.value
