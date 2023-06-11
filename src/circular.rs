@@ -220,21 +220,77 @@ impl<T> Drop for Circular<T> {
 impl<'a, T> iter::Iterator for Iteration<'a, T> {
     type Item = &'a T;
 
-    fn next(&mut self) -> Option<Self::Item> {}
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            self.first.map(|e| {
+                if ptr::eq(e, self.last.unwrap()) {
+                    // hit the last one, eradicate both
+                    self.first = None;
+                    self.last = None;
+                }
+                else {
+                    self.first = e.next.as_ref();
+                }
+                &e.value
+            })
+        }
+    }
 }
 
 impl<'a, T> iter::DoubleEndedIterator for Iteration<'a, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {}
+    fn next_back(&mut self) -> Option<Self::Item> {
+        unsafe {
+            self.last.map(|e| {
+                if ptr::eq(e, self.first.unwrap()) {
+                    // hit the last one, eradicate both
+                    self.first = None;
+                    self.last = None;
+                }
+                else {
+                    self.last = e.prev.as_ref();
+                }
+                &e.value
+            })
+        }
+    }
 }
 
 impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
     type Item = &'a mut T;
 
-    fn next(&mut self) -> Option<Self::Item> {}
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            self.first.map(|e| {
+                if ptr::eq(e, self.first.unwrap()) {
+                    // hit the last one, eradicate both
+                    self.first = None;
+                    self.last = None;
+                }
+                else {
+                    self.first = e.next.as_mut();
+                }
+                &mut e.value
+            })
+        }
+    }
 }
 
 impl<'a, T> iter::DoubleEndedIterator for MutableIteration<'a, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {}
+    fn next_back(&mut self) -> Option<Self::Item> {
+        unsafe {
+            self.last.map(|e| {
+                if ptr::eq(e, self.first.unwrap()) {
+                    // hit the last one, eradicate both
+                    self.first = None;
+                    self.last = None;
+                }
+                else {
+                    self.last = e.prev.as_mut();
+                }
+                &mut e.value
+            })
+        }
+    }
 }
 
 impl<T> iter::Iterator for MovedIteration<T> {
@@ -270,8 +326,8 @@ mod tests {
 
     #[test]
     fn iteration_reads() {
-        let mut a = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
-        let mut a_refs = vec![&1, &3, &5, &7, &9, &2, &4, &6, &8, &10];
+        let mut a: Vec<i32> = vec![1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+        let mut a_refs: Vec<&i32> = vec![&1, &3, &5, &7, &9, &2, &4, &6, &8, &10];
         let mut b = Circular::new();
         a.iter().for_each(|x| b.push(x));
         let mut c = Vec::new();
