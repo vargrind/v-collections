@@ -227,8 +227,7 @@ impl<'a, T> iter::Iterator for Iteration<'a, T> {
                     // hit the last one, eradicate both
                     self.first = None;
                     self.last = None;
-                }
-                else {
+                } else {
                     self.first = e.next.as_ref();
                 }
                 &e.value
@@ -245,8 +244,7 @@ impl<'a, T> iter::DoubleEndedIterator for Iteration<'a, T> {
                     // hit the last one, eradicate both
                     self.first = None;
                     self.last = None;
-                }
-                else {
+                } else {
                     self.last = e.prev.as_ref();
                 }
                 &e.value
@@ -265,8 +263,7 @@ impl<'a, T> iter::Iterator for MutableIteration<'a, T> {
                     // hit the last one, eradicate both
                     self.first = None;
                     self.last = None;
-                }
-                else {
+                } else {
                     self.first = e.next.as_mut();
                 }
                 &mut e.value
@@ -283,8 +280,7 @@ impl<'a, T> iter::DoubleEndedIterator for MutableIteration<'a, T> {
                     // hit the last one, eradicate both
                     self.first = None;
                     self.last = None;
-                }
-                else {
+                } else {
                     self.last = e.prev.as_mut();
                 }
                 &mut e.value
