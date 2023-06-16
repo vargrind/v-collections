@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 #[derive(Debug, Clone)]
 struct KeyExistsError {}
 
@@ -9,10 +11,6 @@ struct KeyNotFoundError {}
 /// holds arbitrary values, uses string keys
 /// common slices of stored keys are compressed by
 /// not storing duplicates of those common slices.
-/// 
-/// known issues:
-/// 1. TrieNode uses Option<> for internal usages, even though it shouldn't actually exist if it's empty.
-/// 2. Everything is using mut to pass mutable references out, so this tree allows mutation / modification of internal contents
 pub struct Trie<V> {
     root: Option<TrieNode<V>>,
 }
@@ -20,7 +18,7 @@ pub struct Trie<V> {
 struct TrieNode<V> {
     prefix: String,
     children: Vec<TrieNode<V>>,
-    value: Option<V>,
+    value: V,
 }
 
 impl<V> Trie<V> {
@@ -30,15 +28,24 @@ impl<V> Trie<V> {
     }
 
     /// gets the value of a key
-    pub fn get(&self, key: &str) -> Option<&mut V> {
+    pub fn get(&self, key: &str) -> Option<&V> {
         match(self.root) {
             None => None,
             Some(r) => r.lookup(key),
         }
     }
 
+    /// gets the value of a key as mutable
+    pub fn get_mut(&mut self, key: &str) -> Option<&mut V> {
+        match(self.root) {
+            None => None,
+            Some(mut r) => r.lookup_mut(key),
+        }
+    }
+
     /// sets a key to a value
-    pub fn set(&mut self, key: &str, val: V) {
+    /// returns the key evicted if there was already a key.
+    pub fn set(&mut self, key: &str, val: V) -> Option<V> {
         
     }
 
@@ -50,21 +57,42 @@ impl<V> Trie<V> {
     /// removes a key
     ///
     /// Ok() if key existed, Err() otherwise
-    pub fn remove(&self, key: &str) -> Result<(), KeyNotFoundError> {
-        
+    pub fn remove(&mut self, key: &str) -> Result<(V), KeyNotFoundError> {
+        match(self.root) {
+            None => Err(KeyNotFoundError {  }),
+            Some(mut v) => match(v.evict(key)) {
+                None => Err(KeyNotFoundError {}),
+                Some(thing) => Ok(thing),
+            },
+        }
     }
 }
 
 impl<V> TrieNode<V> {
+    fn evict(&mut self, key: &str) -> Option<V> {
+
+    }
+
+    fn insert(&mut self, key: &str, val: V) -> Option<V> {
+
+    }
     
-    fn lookup(&self, key: &str) -> Option<&mut V> {
+    fn lookup(&self, key: &str) -> Option<&V> {
         match(self.node(key)) {
             None => None,
-            Some(n) => n.value.as_mut(),
+            Some(n) => Some(&n.value),
         }
     }
 
-    fn node(&self, key: &str) -> Option<Self> {
+    fn lookup_mut(&mut self, key: &str) -> Option<&mut V> {
+        match(self.node(key)) {
+            None => None,
+            Some(n) => Some(&mut n.value),
+        }
+    }
+    
+    fn node(&self, key: &str) -> Option<&Self> {
         
     }
+
 }
