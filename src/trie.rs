@@ -1,3 +1,5 @@
+use std::{rc::Rc, cell::RefCell};
+
 #[derive(Debug, Clone)]
 pub struct KeyExistsError;
 
@@ -12,81 +14,46 @@ pub struct KeyNotFoundError;
 pub struct Trie<V> {
     /// tree root
     /// this will always be a node with the empty string.
-    root: Option<TrieNode<V>>,
-    size: u32,
+    root: TrieNode<V>,
 }
 
 struct TrieNode<V> {
     prefix: String,
-    children: Vec<TrieNode<V>>,
+    children: Vec<Rc<RefCell<TrieNode<V>>>>,
     value: Option<V>,
 }
 
 impl<V> Trie<V> {
     /// constructs an empty prefix tree
     pub fn new() -> Self {
-        Trie { root: None, size: 0 }
-    }
-
-    /// gets the value of a key
-    pub fn get(&self, key: &str) -> Option<&V> {
-        if self.root.is_none() {
-            return None;
+        Trie { 
+            root: TrieNode {
+                value: None,
+                prefix: "".to_owned(),
+                children: Vec::new(),
+            },
         }
-        let mut node = self.root.as_ref().unwrap();
-        loop {
-            if !key.starts_with(&node.prefix) {
-                break;
+    }
+    
+    /// gets the value of a key
+    fn get(&self, key: &str) -> Option<&V> {
+        let mut node: Option<&TrieNode<V>> = Some(&self.root);
+        let mut rest = &key[..];
+        while node.is_some() {
+            let current = node.unwrap();
+            if rest.len() == 0 {
+                return current.value.as_ref();
             }
-            if node.prefix.len() == key.len() {
-                if node.value.is_none(){
-                    return None;
-                }
-                else {
-                    return Some(node.value.as_ref().unwrap());
-                }
-            }
-            if node.children.is_empty() {
-                break;
-            }
-            let rest = &key[node.prefix.len()..];
-            let index = node.children.binary_search_by(|n| n.prefix[..].cmp(rest));
-            match index {
-                Err(_) => break,
-                Ok(i) => node = &node.children[i],
+            rest = &rest[0..current.prefix.len()];
+            for other in current.children.iter().map(|n| n.borrow()) {
+                
             }
         }
         None
     }
-
+    
     /// gets the value of a key as mutable
     pub fn get_mut(&mut self, key: &str) -> Option<&mut V> {
-        if self.root.is_none() {
-            return None;
-        }
-        let mut node = self.root.as_mut().unwrap();
-        loop {
-            if !key.starts_with(&node.prefix) {
-                break;
-            }
-            if node.prefix.len() == key.len() {
-                if node.value.is_none(){
-                    return None;
-                }
-                else {
-                    return Some(node.value.as_mut().unwrap());
-                }
-            }
-            if node.children.is_empty() {
-                break;
-            }
-            let rest = &key[node.prefix.len()..];
-            let index = node.children.binary_search_by(|n| n.prefix[..].cmp(rest));
-            match index {
-                Err(_) => break,
-                Ok(i) => node = &mut node.children[i],
-            }
-        }
         None
     }
 
@@ -98,32 +65,28 @@ impl<V> Trie<V> {
     /// sets a key to a value
     /// returns the key evicted if there was already a key.
     pub fn set(&mut self, key: &str, val: V) -> Option<V> {
-        
+        None
     }
 
     /// removes a key
     ///
     /// Ok() if key existed, Err() otherwise
     pub fn remove(&mut self, key: &str) -> Result<(V), KeyNotFoundError> {
-        
+        Err(KeyNotFoundError)
+    }
+
+    pub fn size(&self) -> usize {
+        return self.root.size();
     }
 }
 
 impl<V> TrieNode<V> {
-    fn insert(&mut self, node: Self) {
-        let pos = {
-            let mut i = 0;
-            loop {
-                if i >= self.children.len() {
-                    break i;
-                }
-                if self.children[i].prefix >= node.prefix {
-                    break i;
-                }
-                i += 1;
-            }
-        };
-        self.children.insert(pos, node); 
+    fn size(&self) -> usize {
+        let mut size = 1;
+        for other in self.children.iter() {
+            size += other.borrow().size();
+        }
+        return size;
     }
 }
 
