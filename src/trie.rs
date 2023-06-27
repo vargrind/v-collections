@@ -1,8 +1,8 @@
 #[derive(Debug, Clone)]
-struct KeyExistsError {}
+pub struct KeyExistsError;
 
 #[derive(Debug, Clone)]
-struct KeyNotFoundError {}
+pub struct KeyNotFoundError;
 
 /// compressed prefix tree
 ///
@@ -10,35 +10,84 @@ struct KeyNotFoundError {}
 /// common slices of stored keys are compressed by
 /// not storing duplicates of those common slices.
 pub struct Trie<V> {
+    /// tree root
+    /// this will always be a node with the empty string.
     root: Option<TrieNode<V>>,
+    size: u32,
 }
 
 struct TrieNode<V> {
     prefix: String,
     children: Vec<TrieNode<V>>,
-    value: V,
+    value: Option<V>,
 }
 
 impl<V> Trie<V> {
     /// constructs an empty prefix tree
     pub fn new() -> Self {
-        Trie { root: None }
+        Trie { root: None, size: 0 }
     }
 
     /// gets the value of a key
     pub fn get(&self, key: &str) -> Option<&V> {
-        match self.key_node(key) {
-            Some(n) => Some(&n.value),
-            None => None,
+        if self.root.is_none() {
+            return None;
         }
+        let mut node = self.root.as_ref().unwrap();
+        loop {
+            if !key.starts_with(&node.prefix) {
+                break;
+            }
+            if node.prefix.len() == key.len() {
+                if node.value.is_none(){
+                    return None;
+                }
+                else {
+                    return Some(node.value.as_ref().unwrap());
+                }
+            }
+            if node.children.is_empty() {
+                break;
+            }
+            let rest = &key[node.prefix.len()..];
+            let index = node.children.binary_search_by(|n| n.prefix[..].cmp(rest));
+            match index {
+                Err(_) => break,
+                Ok(i) => node = &node.children[i],
+            }
+        }
+        None
     }
 
     /// gets the value of a key as mutable
     pub fn get_mut(&mut self, key: &str) -> Option<&mut V> {
-        match self.key_node(key) {
-            Some(mut n) => Some(&mut n.value),
-            None => None,
+        if self.root.is_none() {
+            return None;
         }
+        let mut node = self.root.as_mut().unwrap();
+        loop {
+            if !key.starts_with(&node.prefix) {
+                break;
+            }
+            if node.prefix.len() == key.len() {
+                if node.value.is_none(){
+                    return None;
+                }
+                else {
+                    return Some(node.value.as_mut().unwrap());
+                }
+            }
+            if node.children.is_empty() {
+                break;
+            }
+            let rest = &key[node.prefix.len()..];
+            let index = node.children.binary_search_by(|n| n.prefix[..].cmp(rest));
+            match index {
+                Err(_) => break,
+                Ok(i) => node = &mut node.children[i],
+            }
+        }
+        None
     }
 
     /// checks if a key exists
@@ -49,39 +98,33 @@ impl<V> Trie<V> {
     /// sets a key to a value
     /// returns the key evicted if there was already a key.
     pub fn set(&mut self, key: &str, val: V) -> Option<V> {
-
+        
     }
 
     /// removes a key
     ///
     /// Ok() if key existed, Err() otherwise
     pub fn remove(&mut self, key: &str) -> Result<(V), KeyNotFoundError> {
-    }
-
-    fn key_node(&self, key: &str) -> Option<TrieNode<V>> {
-        let mut current_node = self.root;
-        while let Some(node) = current_node {
-            if !key.starts_with(&node.prefix) {
-                break;
-            }
-            if node.prefix.len() == key.len() {
-                return Some(node);
-            }
-            if node.children.is_empty() {
-                break;
-            }
-            let rest = &key[node.prefix.len()..];
-            let index = node.children.binary_search_by(|n| n.prefix[..].cmp(rest));
-            match index {
-                Err(_) => break,
-                Ok(i) => current_node = Some(node.children[i]),
-            }
-        }
-        None
+        
     }
 }
 
 impl<V> TrieNode<V> {
+    fn insert(&mut self, node: Self) {
+        let pos = {
+            let mut i = 0;
+            loop {
+                if i >= self.children.len() {
+                    break i;
+                }
+                if self.children[i].prefix >= node.prefix {
+                    break i;
+                }
+                i += 1;
+            }
+        };
+        self.children.insert(pos, node); 
+    }
 }
 
 #[cfg(test)]
