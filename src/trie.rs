@@ -19,7 +19,7 @@ pub struct Trie<V> {
 
 struct TrieNode<V> {
     prefix: String,
-    children: Vec<Rc<RefCell<TrieNode<V>>>>,
+    children: Vec<TrieNode<V>>,
     value: Option<V>,
 }
 
@@ -37,24 +37,12 @@ impl<V> Trie<V> {
     
     /// gets the value of a key
     fn get(&self, key: &str) -> Option<&V> {
-        let mut node: Option<&TrieNode<V>> = Some(&self.root);
-        let mut rest = &key[..];
-        while node.is_some() {
-            let current = node.unwrap();
-            if rest.len() == 0 {
-                return current.value.as_ref();
-            }
-            rest = &rest[0..current.prefix.len()];
-            for other in current.children.iter().map(|n| n.borrow()) {
-                
-            }
-        }
-        None
+        self.root.get(key)
     }
     
     /// gets the value of a key as mutable
     pub fn get_mut(&mut self, key: &str) -> Option<&mut V> {
-        None
+        self.root.get_mut(key)
     }
 
     /// checks if a key exists
@@ -65,7 +53,7 @@ impl<V> Trie<V> {
     /// sets a key to a value
     /// returns the key evicted if there was already a key.
     pub fn set(&mut self, key: &str, val: V) -> Option<V> {
-        None
+        self.root.insert(key, val)
     }
 
     /// removes a key
@@ -84,9 +72,92 @@ impl<V> TrieNode<V> {
     fn size(&self) -> usize {
         let mut size = 1;
         for other in self.children.iter() {
-            size += other.borrow().size();
+            size += other.size();
         }
         return size;
+    }
+    
+    fn get(&self, key: &str) -> Option<&V> {
+        if key == self.prefix {
+            return self.value.as_ref();
+        }
+        let rest = &key[0..self.prefix.len()];
+        let leaf = self.leaf(rest);
+        match leaf {
+            None => None,
+            Some(node) => {
+                node.get(rest)
+            }
+        }
+    }
+
+    fn leaf(&self, key: &str) -> Option<&Self> {
+        for node in self.children.iter() {
+            if key.starts_with(&node.prefix) {
+                return Some(&node);
+            }
+        }
+        None
+    }
+    
+    fn get_mut(&mut self, key: &str) -> Option<&mut V> {
+        if key == self.prefix {
+            return self.value.as_mut();
+        }
+        let rest = &key[0..self.prefix.len()];
+        let leaf = self.leaf_mut(rest);
+        match leaf {
+            None => None,
+            Some(node) => {
+                node.get_mut(rest)
+            }
+        }
+    }
+
+    fn leaf_mut(&mut self, key: &str) -> Option<&mut Self> {
+        for node in self.children.iter_mut() {
+            if key.starts_with(&node.prefix) {
+                return Some(node);
+            }
+        }
+        None
+    }
+    
+    fn insert(&mut self, key: &str, value: V) -> Option<V> {
+        if key == self.prefix {
+            return self.value.replace(value);
+        }
+        let rest = &key[0..self.prefix.len()];
+        let leaf = self.leaf_mut(key);
+        // still longer than leaf, and leaf exists
+        if leaf.is_some() {
+            return leaf.unwrap().insert(rest, value);
+        }
+        // shorter than a valid leaf split target
+        let split = self.insert_split_target(rest);
+        if split.is_some() {
+            let (idx, node) = split.unwrap();
+            let mut inject = TrieNode {
+                prefix: (&rest[(rest.len() - 1)..(node.prefix.len() - rest.len())]).to_owned(),
+                children: Vec::new(),
+                value: Some(value),
+            };
+            let moved = std::mem::replace(&mut self.children[idx], inject);
+            self.children[idx].children.push(moved);
+            return None;
+        }
+        // neither a leaf is our prefix, nor are we a leaf prefix, inject new leaf.
+        let mut inject = TrieNode {
+            prefix: rest.to_owned(),
+            children: Vec::new(),
+            value: Some(value),
+        };
+        self.children.push(inject);
+        return None;
+    }
+
+    fn insert_split_target(&mut self, key: &str) -> Option<(usize, &mut Self)> {
+        self.children.iter_mut().enumerate().find(|(idx, node)| node.prefix.starts_with(key))
     }
 }
 
