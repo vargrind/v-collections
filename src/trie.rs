@@ -11,12 +11,14 @@ pub struct KeyNotFoundError;
 /// holds arbitrary values, uses string keys
 /// common slices of stored keys are compressed by
 /// not storing duplicates of those common slices.
+#[derive(Debug)]
 pub struct Trie<V> {
     /// tree root
     /// this will always be a node with the empty string.
     root: TrieNode<V>,
 }
 
+#[derive(Debug)]
 struct TrieNode<V> {
     prefix: String,
     children: Vec<TrieNode<V>>,
@@ -81,7 +83,7 @@ impl<V> TrieNode<V> {
         if key == self.prefix {
             return self.value.as_ref();
         }
-        let rest = &key[0..self.prefix.len()];
+        let rest = &key[self.prefix.len()..];
         let leaf = self.leaf(rest);
         match leaf {
             None => None,
@@ -104,7 +106,7 @@ impl<V> TrieNode<V> {
         if key == self.prefix {
             return self.value.as_mut();
         }
-        let rest = &key[0..self.prefix.len()];
+        let rest = &key[self.prefix.len()..];
         let leaf = self.leaf_mut(rest);
         match leaf {
             None => None,
@@ -124,18 +126,21 @@ impl<V> TrieNode<V> {
     }
     
     fn insert(&mut self, key: &str, value: V) -> Option<V> {
+        println!("root {}", key);
         if key == self.prefix {
             return self.value.replace(value);
         }
-        let rest = &key[0..self.prefix.len()];
-        let leaf = self.leaf_mut(key);
+        let rest = &key[self.prefix.len()..];
+        let leaf = self.leaf_mut(rest);
         // still longer than leaf, and leaf exists
         if leaf.is_some() {
+            println!("leaf");
             return leaf.unwrap().insert(rest, value);
         }
         // shorter than a valid leaf split target
         let split = self.insert_split_target(rest);
         if split.is_some() {
+            println!("split");
             let (idx, node) = split.unwrap();
             let mut inject = TrieNode {
                 prefix: (&rest[(rest.len() - 1)..(node.prefix.len() - rest.len())]).to_owned(),
@@ -147,6 +152,7 @@ impl<V> TrieNode<V> {
             return None;
         }
         // neither a leaf is our prefix, nor are we a leaf prefix, inject new leaf.
+        println!("inject {}", rest);
         let mut inject = TrieNode {
             prefix: rest.to_owned(),
             children: Vec::new(),
@@ -163,15 +169,18 @@ impl<V> TrieNode<V> {
 
 #[cfg(test)]
 mod tests{
+    use std::fmt::Debug;
+
     use super::*;
 
     #[test]
     fn insertion_retrieval() {
         let mut trie: Trie<i32> = Trie::new();
-        let v1 = vec!["a", "b", "c", "ab", "ac", "abc", "abcde"];
+        let v1 = vec!["a", "ab", "ac", "b", "c", "abc", "abcde"];
         let v2  = vec![1, 2, 3, 4, 5, 6, 7];
         for i in 0..7 {
             trie.set(v1[i], v2[i]);
+            println!("{:?}", trie);
         }
         for i in 0..7 {
             assert_eq!(trie.get(v1[i]), Some(&v2[i]))
