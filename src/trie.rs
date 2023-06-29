@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell, ops::{Add, AddAssign}};
 
 #[derive(Debug, Clone)]
 pub struct KeyExistsError;
@@ -198,9 +198,53 @@ impl<V> TrieNode<V> {
         // leaf is exact
         // evict value
         let evicted = leaf.value.take();
-        
+        // some options
+        match leaf.children.len() {
+            0 => {
+                // empty, evict
+                let prefix = leaf.prefix.to_owned();
+                self.evict_node_with_prefix(&prefix);
+            }
+            1 => {
+                // 1 node. it should take the node below it.
+                leaf.take_below();
+            }
+            _ => {
+                // more than 1 node; do nothing, as it needs to stay there to be a split/branching node.
+            }
+        }
+        match self.children.len() {
+            1 => {
+                // we only have one child, we should take the node we just read
+                self.take_below();
+            }
+            _ => {
+                // can't do anything, we need to be a branching node
+            }
+        }
         // return evicted value
         evicted
+    }
+
+    fn evict_node_with_prefix(&mut self, prefix: &str) {
+        self.children.swap_remove(self.children.iter().enumerate().find(|(idx, n)| n.prefix == prefix).unwrap().0);
+    }
+    
+    fn take_below(&mut self) {
+        // this only makes sense if we only have 1 node.
+        assert!(self.children.len() == 1);
+        // take the node from below
+        let taken = std::mem::replace(&mut self.children[1].children, Vec::new());
+        // remove the node we have
+        let node = self.children.remove(1);
+        // steal their prefix
+        let prefix = node.prefix.to_owned();
+        // drop that node just in case
+        std::mem::drop(node);
+        // replace our children with that node
+        self.children = taken;
+        // append their prefix to ours
+        self.prefix.add_assign(&prefix);
     }
 }
 
@@ -222,7 +266,26 @@ mod tests{
         for i in 0..8 {
             assert_eq!(trie.get(v1[i]), Some(&v2[i]));
         }
+        assert_eq!(trie.size(), 8);
         trie.set(v1[3], 33);
         assert_eq!(trie.get(v1[3]), Some(&33));
+        assert_eq!(trie.size(), 9);
+    }
+    
+    #[test]
+    fn insertion_deletion() {
+        let mut trie = Trie::new();
+        let v1 = vec!["a", "ab", "ac", "b", "c", "abc", "abcde", "abced"];
+        let v2  = vec![1, 2, 3, 4, 5, 6, 7, 9];
+        for i in 0..8 {
+            trie.set(v1[i], v2[i]);
+            println!("{:?}", trie);
+        }
+        for i in 0..8 {
+            assert_eq!(trie.get(v1[i]), Some(&v2[i]));
+        }
+        trie.set(v1[3], 33);
+        assert_eq!(trie.get(v1[3]), Some(&33));
+        assert_eq!(trie.size(), 8);
     }
 }
