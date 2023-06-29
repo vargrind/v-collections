@@ -62,11 +62,14 @@ impl<V> Trie<V> {
     ///
     /// Ok() if key existed, Err() otherwise
     pub fn remove(&mut self, key: &str) -> Result<(V), KeyNotFoundError> {
-        Err(KeyNotFoundError)
+        match self.root.remove(key) {
+            None => Err(KeyNotFoundError),
+            Some(data) => Ok(data),
+        }
     }
 
     pub fn size(&self) -> usize {
-        return self.root.size();
+        self.root.size()
     }
 }
 
@@ -80,7 +83,9 @@ impl<V> TrieNode<V> {
     }
     
     fn get(&self, key: &str) -> Option<&V> {
+        println!("get {} at {:?}", key, self.prefix);
         if key == self.prefix {
+            println!("found");
             return self.value.as_ref();
         }
         let rest = &key[self.prefix.len()..];
@@ -128,6 +133,7 @@ impl<V> TrieNode<V> {
     fn insert(&mut self, key: &str, value: V) -> Option<V> {
         println!("root {}", key);
         if key == self.prefix {
+            println!("replace");
             return self.value.replace(value);
         }
         let rest = &key[self.prefix.len()..];
@@ -165,6 +171,37 @@ impl<V> TrieNode<V> {
     fn insert_split_target(&mut self, key: &str) -> Option<(usize, &mut Self)> {
         self.children.iter_mut().enumerate().find(|(idx, node)| node.prefix.starts_with(key))
     }
+
+    fn remove(&mut self, key: &str) -> Option<V> {
+        println!("remove {}", key);
+        if key == self.prefix {
+            // us, this should only happen on first node. eject value.
+            return self.value.take();
+        }
+        self.remove_internal(&key[self.prefix.len()..])
+    }
+
+    fn remove_internal(&mut self, key: &str) -> Option<V>{
+        // get leaf node
+        let leaf = self.leaf_mut(key);
+        if leaf.is_none() {
+            // not found, bail
+            return None;
+        }
+        // unwrap it - this relies on local variable shadowing
+        let leaf = leaf.unwrap();
+        // leaf is not exact
+        if leaf.prefix != key {
+            // kick it down
+            return leaf.remove_internal(key);
+        }
+        // leaf is exact
+        // evict value
+        let evicted = leaf.value.take();
+        
+        // return evicted value
+        evicted
+    }
 }
 
 #[cfg(test)]
@@ -175,15 +212,17 @@ mod tests{
 
     #[test]
     fn insertion_retrieval() {
-        let mut trie: Trie<i32> = Trie::new();
-        let v1 = vec!["a", "ab", "ac", "b", "c", "abc", "abcde"];
-        let v2  = vec![1, 2, 3, 4, 5, 6, 7];
-        for i in 0..7 {
+        let mut trie = Trie::new();
+        let v1 = vec!["a", "ab", "ac", "b", "c", "abc", "abcde", "abced"];
+        let v2  = vec![1, 2, 3, 4, 5, 6, 7, 9];
+        for i in 0..8 {
             trie.set(v1[i], v2[i]);
             println!("{:?}", trie);
         }
-        for i in 0..7 {
-            assert_eq!(trie.get(v1[i]), Some(&v2[i]))
+        for i in 0..8 {
+            assert_eq!(trie.get(v1[i]), Some(&v2[i]));
         }
+        trie.set(v1[3], 33);
+        assert_eq!(trie.get(v1[3]), Some(&33));
     }
 }
