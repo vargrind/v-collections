@@ -83,9 +83,7 @@ impl<V> TrieNode<V> {
     }
     
     fn get(&self, key: &str) -> Option<&V> {
-        println!("get {} at {:?}", key, self.prefix);
         if key == self.prefix {
-            println!("found");
             return self.value.as_ref();
         }
         let rest = &key[self.prefix.len()..];
@@ -131,22 +129,18 @@ impl<V> TrieNode<V> {
     }
     
     fn insert(&mut self, key: &str, value: V) -> Option<V> {
-        println!("root {}", key);
         if key == self.prefix {
-            println!("replace");
             return self.value.replace(value);
         }
         let rest = &key[self.prefix.len()..];
         let leaf = self.leaf_mut(rest);
         // still longer than leaf, and leaf exists
         if leaf.is_some() {
-            println!("leaf");
             return leaf.unwrap().insert(rest, value);
         }
         // shorter than a valid leaf split target
         let split = self.insert_split_target(rest);
         if split.is_some() {
-            println!("split");
             let (idx, node) = split.unwrap();
             let mut inject = TrieNode {
                 prefix: (&rest[(rest.len() - 1)..(node.prefix.len() - rest.len())]).to_owned(),
@@ -158,7 +152,6 @@ impl<V> TrieNode<V> {
             return None;
         }
         // neither a leaf is our prefix, nor are we a leaf prefix, inject new leaf.
-        println!("inject {}", rest);
         let mut inject = TrieNode {
             prefix: rest.to_owned(),
             children: Vec::new(),
@@ -173,7 +166,6 @@ impl<V> TrieNode<V> {
     }
 
     fn remove(&mut self, key: &str) -> Option<V> {
-        println!("remove {}", key);
         if key == self.prefix {
             // us, this should only happen on first node. eject value.
             return self.value.take();
@@ -183,7 +175,8 @@ impl<V> TrieNode<V> {
 
     fn remove_internal(&mut self, key: &str) -> Option<V>{
         // get leaf node
-        let leaf = self.leaf_mut(key);
+        let rest = &key[self.prefix.len()..];
+        let leaf = self.leaf_mut(rest);
         if leaf.is_none() {
             // not found, bail
             return None;
@@ -191,9 +184,9 @@ impl<V> TrieNode<V> {
         // unwrap it - this relies on local variable shadowing
         let leaf = leaf.unwrap();
         // leaf is not exact
-        if leaf.prefix != key {
+        if leaf.prefix != rest {
             // kick it down
-            return leaf.remove_internal(key);
+            return leaf.remove_internal(rest);
         }
         // leaf is exact
         // evict value
@@ -234,9 +227,9 @@ impl<V> TrieNode<V> {
         // this only makes sense if we only have 1 node.
         assert!(self.children.len() == 1);
         // take the node from below
-        let taken = std::mem::replace(&mut self.children[1].children, Vec::new());
+        let taken = std::mem::replace(&mut self.children[0].children, Vec::new());
         // remove the node we have
-        let node = self.children.remove(1);
+        let node = self.children.remove(0);
         // steal their prefix
         let prefix = node.prefix.to_owned();
         // drop that node just in case
@@ -261,12 +254,11 @@ mod tests{
         let v2  = vec![1, 2, 3, 4, 5, 6, 7, 9];
         for i in 0..8 {
             trie.set(v1[i], v2[i]);
-            println!("{:?}", trie);
         }
         for i in 0..8 {
             assert_eq!(trie.get(v1[i]), Some(&v2[i]));
         }
-        assert_eq!(trie.size(), 8);
+        assert_eq!(trie.size(), 9);
         trie.set(v1[3], 33);
         assert_eq!(trie.get(v1[3]), Some(&33));
         assert_eq!(trie.size(), 9);
@@ -279,13 +271,21 @@ mod tests{
         let v2  = vec![1, 2, 3, 4, 5, 6, 7, 9];
         for i in 0..8 {
             trie.set(v1[i], v2[i]);
-            println!("{:?}", trie);
         }
         for i in 0..8 {
             assert_eq!(trie.get(v1[i]), Some(&v2[i]));
         }
-        trie.set(v1[3], 33);
-        assert_eq!(trie.get(v1[3]), Some(&33));
-        assert_eq!(trie.size(), 8);
+        assert_eq!(trie.size(), 9);
+        let removed = trie.remove("abcd");
+        assert!(removed.is_err());
+        let removed = trie.remove("abcde");
+        assert_eq!(removed.ok(), Some(7));
+        assert_eq!(trie.size(), 7);
+        let removed: Result<i32, KeyNotFoundError> = trie.remove("c");
+        assert_eq!(removed.ok(), Some(5));
+        assert_eq!(trie.size(), 6);
+        let removed = trie.remove("abcde");
+        assert!(removed.is_err());
+        assert_eq!(trie.size(), 6);
     }
 }
