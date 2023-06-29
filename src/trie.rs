@@ -1,4 +1,4 @@
-use std::{ops::{AddAssign}};
+use std::ops::AddAssign;
 
 #[derive(Debug, Clone)]
 pub struct KeyExistsError;
@@ -28,7 +28,7 @@ struct TrieNode<V> {
 impl<V> Trie<V> {
     /// constructs an empty prefix tree
     pub fn new() -> Self {
-        Trie { 
+        Trie {
             root: TrieNode {
                 value: None,
                 prefix: "".to_owned(),
@@ -36,12 +36,12 @@ impl<V> Trie<V> {
             },
         }
     }
-    
+
     /// gets the value of a key
     fn get(&self, key: &str) -> Option<&V> {
         self.root.get(key)
     }
-    
+
     /// gets the value of a key as mutable
     pub fn get_mut(&mut self, key: &str) -> Option<&mut V> {
         self.root.get_mut(key)
@@ -81,7 +81,7 @@ impl<V> TrieNode<V> {
         }
         return size;
     }
-    
+
     fn get(&self, key: &str) -> Option<&V> {
         if key == self.prefix {
             return self.value.as_ref();
@@ -90,9 +90,7 @@ impl<V> TrieNode<V> {
         let leaf = self.leaf(rest);
         match leaf {
             None => None,
-            Some(node) => {
-                node.get(rest)
-            }
+            Some(node) => node.get(rest),
         }
     }
 
@@ -104,7 +102,7 @@ impl<V> TrieNode<V> {
         }
         None
     }
-    
+
     fn get_mut(&mut self, key: &str) -> Option<&mut V> {
         if key == self.prefix {
             return self.value.as_mut();
@@ -113,9 +111,7 @@ impl<V> TrieNode<V> {
         let leaf = self.leaf_mut(rest);
         match leaf {
             None => None,
-            Some(node) => {
-                node.get_mut(rest)
-            }
+            Some(node) => node.get_mut(rest),
         }
     }
 
@@ -127,7 +123,7 @@ impl<V> TrieNode<V> {
         }
         None
     }
-    
+
     fn insert(&mut self, key: &str, value: V) -> Option<V> {
         if key == self.prefix {
             return self.value.replace(value);
@@ -162,7 +158,10 @@ impl<V> TrieNode<V> {
     }
 
     fn insert_split_target(&mut self, key: &str) -> Option<(usize, &mut Self)> {
-        self.children.iter_mut().enumerate().find(|(_idx, node)| node.prefix.starts_with(key))
+        self.children
+            .iter_mut()
+            .enumerate()
+            .find(|(_idx, node)| node.prefix.starts_with(key))
     }
 
     fn remove(&mut self, key: &str) -> Option<V> {
@@ -173,7 +172,7 @@ impl<V> TrieNode<V> {
         self.remove_internal(&key[self.prefix.len()..])
     }
 
-    fn remove_internal(&mut self, key: &str) -> Option<V>{
+    fn remove_internal(&mut self, key: &str) -> Option<V> {
         // get leaf node
         let rest = &key[self.prefix.len()..];
         let leaf = self.leaf_mut(rest);
@@ -220,9 +219,16 @@ impl<V> TrieNode<V> {
     }
 
     fn evict_node_with_prefix(&mut self, prefix: &str) {
-        self.children.swap_remove(self.children.iter().enumerate().find(|(_idx, n)| n.prefix == prefix).unwrap().0);
+        self.children.swap_remove(
+            self.children
+                .iter()
+                .enumerate()
+                .find(|(_idx, n)| n.prefix == prefix)
+                .unwrap()
+                .0,
+        );
     }
-    
+
     fn take_below(&mut self) {
         // this only makes sense if we only have 1 node.
         assert!(self.children.len() == 1);
@@ -242,8 +248,7 @@ impl<V> TrieNode<V> {
 }
 
 #[cfg(test)]
-mod tests{
-    
+mod tests {
 
     use super::*;
 
@@ -251,7 +256,7 @@ mod tests{
     fn insertion_retrieval() {
         let mut trie = Trie::new();
         let v1 = vec!["a", "ab", "ac", "b", "c", "abc", "abcde", "abced"];
-        let v2  = vec![1, 2, 3, 4, 5, 6, 7, 9];
+        let v2 = vec![1, 2, 3, 4, 5, 6, 7, 9];
         for i in 0..8 {
             trie.set(v1[i], v2[i]);
         }
@@ -263,12 +268,12 @@ mod tests{
         assert_eq!(trie.get(v1[3]), Some(&33));
         assert_eq!(trie.size(), 9);
     }
-    
+
     #[test]
     fn insertion_deletion() {
         let mut trie = Trie::new();
         let v1 = vec!["a", "ab", "ac", "b", "c", "abc", "abcde", "abced"];
-        let v2  = vec![1, 2, 3, 4, 5, 6, 7, 9];
+        let v2 = vec![1, 2, 3, 4, 5, 6, 7, 9];
         for i in 0..8 {
             trie.set(v1[i], v2[i]);
         }
