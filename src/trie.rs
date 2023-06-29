@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell, ops::{Add, AddAssign}};
+use std::{ops::{AddAssign}};
 
 #[derive(Debug, Clone)]
 pub struct KeyExistsError;
@@ -61,7 +61,7 @@ impl<V> Trie<V> {
     /// removes a key
     ///
     /// Ok() if key existed, Err() otherwise
-    pub fn remove(&mut self, key: &str) -> Result<(V), KeyNotFoundError> {
+    pub fn remove(&mut self, key: &str) -> Result<V, KeyNotFoundError> {
         match self.root.remove(key) {
             None => Err(KeyNotFoundError),
             Some(data) => Ok(data),
@@ -142,7 +142,7 @@ impl<V> TrieNode<V> {
         let split = self.insert_split_target(rest);
         if split.is_some() {
             let (idx, node) = split.unwrap();
-            let mut inject = TrieNode {
+            let inject = TrieNode {
                 prefix: (&rest[(rest.len() - 1)..(node.prefix.len() - rest.len())]).to_owned(),
                 children: Vec::new(),
                 value: Some(value),
@@ -152,7 +152,7 @@ impl<V> TrieNode<V> {
             return None;
         }
         // neither a leaf is our prefix, nor are we a leaf prefix, inject new leaf.
-        let mut inject = TrieNode {
+        let inject = TrieNode {
             prefix: rest.to_owned(),
             children: Vec::new(),
             value: Some(value),
@@ -162,7 +162,7 @@ impl<V> TrieNode<V> {
     }
 
     fn insert_split_target(&mut self, key: &str) -> Option<(usize, &mut Self)> {
-        self.children.iter_mut().enumerate().find(|(idx, node)| node.prefix.starts_with(key))
+        self.children.iter_mut().enumerate().find(|(_idx, node)| node.prefix.starts_with(key))
     }
 
     fn remove(&mut self, key: &str) -> Option<V> {
@@ -220,7 +220,7 @@ impl<V> TrieNode<V> {
     }
 
     fn evict_node_with_prefix(&mut self, prefix: &str) {
-        self.children.swap_remove(self.children.iter().enumerate().find(|(idx, n)| n.prefix == prefix).unwrap().0);
+        self.children.swap_remove(self.children.iter().enumerate().find(|(_idx, n)| n.prefix == prefix).unwrap().0);
     }
     
     fn take_below(&mut self) {
@@ -243,7 +243,7 @@ impl<V> TrieNode<V> {
 
 #[cfg(test)]
 mod tests{
-    use std::fmt::Debug;
+    
 
     use super::*;
 
