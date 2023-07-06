@@ -38,22 +38,26 @@ impl<V> Trie<V> {
     }
 
     /// gets the value of a key
+    #[inline]
     fn get(&self, key: &str) -> Option<&V> {
         self.root.get(key)
     }
 
     /// gets the value of a key as mutable
+    #[inline]
     pub fn get_mut(&mut self, key: &str) -> Option<&mut V> {
         self.root.get_mut(key)
     }
 
     /// checks if a key exists
+    #[inline]
     pub fn has(&self, key: &str) -> bool {
         self.get(key).is_some()
     }
 
     /// sets a key to a value
     /// returns the key evicted if there was already a key.
+    #[inline]
     pub fn set(&mut self, key: &str, val: V) -> Option<V> {
         self.root.insert(key, val)
     }
@@ -61,6 +65,7 @@ impl<V> Trie<V> {
     /// removes a key
     ///
     /// Ok() if key existed, Err() otherwise
+    #[inline]
     pub fn remove(&mut self, key: &str) -> Result<V, KeyNotFoundError> {
         match self.root.remove(key) {
             None => Err(KeyNotFoundError),
@@ -68,6 +73,8 @@ impl<V> Trie<V> {
         }
     }
 
+    /// Gets the size of the tree in terms of nodes.
+    #[inline]
     pub fn size(&self) -> usize {
         self.root.size()
     }
@@ -163,7 +170,7 @@ impl<V> TrieNode<V> {
             .enumerate()
             .find(|(_idx, node)| node.prefix.starts_with(key))
     }
-
+    
     fn remove(&mut self, key: &str) -> Option<V> {
         if key == self.prefix {
             // us, this should only happen on first node. eject value.
@@ -250,6 +257,8 @@ impl<V> TrieNode<V> {
 #[cfg(test)]
 mod tests {
 
+    use test::Bencher;
+
     use super::*;
 
     #[test]
@@ -292,5 +301,84 @@ mod tests {
         let removed = trie.remove("abcde");
         assert!(removed.is_err());
         assert_eq!(trie.size(), 6);
+    }
+
+    #[bench]
+    fn sequential_number_strings(bencher: &mut Bencher) {
+        let mut v = vec![];
+        for i in 0..10000 {
+            let str = i.to_string();
+            v.push(str);
+        }
+        bencher.iter(|| {
+            let mut tree = Trie::new();
+            v.iter().for_each(|s| { tree.set(s, 1); });
+        });
+    }
+
+    #[bench]
+    fn sequential_numerical_strings_dupe(bencher: &mut Bencher) {
+        let mut v = vec![];
+        for _ in 0..=1 {
+            for i in 0..5000 {
+                let str = i.to_string();
+                v.push(str);
+            }
+        }
+        bencher.iter(|| {
+            let mut tree = Trie::new();
+            v.iter().for_each(|s| { tree.set(s, 1); });
+        });
+    }
+
+    #[bench]
+    fn exact_string_dupe(bencher: &mut Bencher) {
+        let mut v = vec![];
+        for _ in 0..10000 {
+            let str = 1234567890.to_string();
+            v.push(str);
+        }
+        bencher.iter(|| {
+            let mut tree = Trie::new();
+            v.iter().for_each(|s| { tree.set(s, 1); });
+        });
+    }
+
+    #[bench]
+    fn dupe_strings_under_load(bencher: &mut Bencher) {
+        let mut v = vec![];
+        for i in 0..10000 {
+            let str = i.to_string();
+            v.push(str);
+        }
+        let mut tree = Trie::new();
+        v.iter().for_each(|s| { tree.set(s, 1); });
+        let mut v = vec![];
+        for _ in 0..10000 {
+            let str = 9999.to_string();
+            v.push(str);
+        }
+        bencher.iter(|| {
+            v.iter().for_each(|s| { tree.set(s, 1); });
+        });
+    }
+    
+    #[bench]
+    fn dupe_longer_strings_under_load(bencher: &mut Bencher) {
+        let mut v = vec![];
+        for i in 0..10000 {
+            let str = i.to_string();
+            v.push(str);
+        }
+        let mut tree = Trie::new();
+        v.iter().for_each(|s| { tree.set(s, 1); });
+        let mut v = vec![];
+        for _ in 0..10000 {
+            let str = 9999999999999u64.to_string();
+            v.push(str);
+        }
+        bencher.iter(|| {
+            v.iter().for_each(|s| { tree.set(s, 1); });
+        });
     }
 }
